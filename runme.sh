@@ -370,10 +370,9 @@ echo "root:root" | chpasswd
 echo "${HOST_NAME}" | sudo tee /etc/hostname
 echo "127.0.0.1 localhost ${HOST_NAME}" | sudo tee -a /etc/hosts
 
-# check the date
-date
-date -s "2024-01-01 00:00:00"
-date
+# update CA Certificates
+apt install --reinstall ca-certificates
+update-ca-certificates
 
 # install AWS Greengrass
 apt -y install default-jdk
