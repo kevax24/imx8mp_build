@@ -381,7 +381,9 @@ apt install --reinstall ca-certificates
 update-ca-certificates
 
 # install AWS Greengrass
+mount -t proc /proc /proc
 apt -y install default-jdk
+umount /proc
 
 # delete self
 rm -f /stage2.sh
