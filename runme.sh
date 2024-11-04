@@ -372,8 +372,9 @@ echo "127.0.0.1 localhost ${HOST_NAME}" | sudo tee -a /etc/hosts
 
 # check the date
 date
-date -s "2024-01-01 00:00:00"
+date -s "2024-11-04 00:00:00"
 date
+ntpdate -u pool.ntp.org || echo "NTP sync failed; continuing with manually set date."
 
 # update CA Certificates
 apt install --reinstall ca-certificates
