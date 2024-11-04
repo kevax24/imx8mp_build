@@ -392,7 +392,7 @@ EOF
 
 		# bootstrap second stage within qemu
 		qemu-system-aarch64 \
-			-m 1G \
+			-m 4G \
 			-M virt \
 			-cpu cortex-a57 \
 			-smp 4 \
