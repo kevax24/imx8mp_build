@@ -372,6 +372,9 @@ echo "127.0.0.1 localhost ${HOST_NAME}" | sudo tee -a /etc/hosts
 
 # check the date
 date
+apt -y install ntpdate
+ntpdate time.google.com
+date
 
 # install AWS Greengrass
 apt -y install default-jdk
