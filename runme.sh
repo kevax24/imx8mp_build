@@ -372,8 +372,7 @@ echo "127.0.0.1 localhost ${HOST_NAME}" | sudo tee -a /etc/hosts
 
 # check the date
 date
-apt -y install ntpdate
-ntpdate time.google.com
+date -s "2024-01-01 00:00:00"
 date
 
 # install AWS Greengrass
