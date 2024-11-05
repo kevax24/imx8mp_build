@@ -370,6 +370,14 @@ echo "root:root" | chpasswd
 echo "${HOST_NAME}" | sudo tee /etc/hostname
 echo "127.0.0.1 localhost ${HOST_NAME}" | sudo tee -a /etc/hosts
 
+# update date and ca certificates
+date
+hwclock --hctosys
+date
+
+apt install --reinstall ca-certificates
+update-ca-certificates
+
 # download certificates to the device
 echo "************ Download certificates to the device... ************"
 mkdir -p /greengrass/v2
@@ -383,17 +391,9 @@ echo "Done"
 echo "************ Set up the device environment... ************"
 apt update
 
-date
-date -s "2024-11-04 00:00:00"
-date
-
-apt install --reinstall ca-certificates
-update-ca-certificates
-
 mount -t proc /proc /proc
 apt -y install default-jdk
 umount /proc
-java -version
 
 useradd --system --create-home ggc_user
 groupadd --system ggc_group
@@ -403,19 +403,16 @@ echo "Done"
 # download the AWS IoT Greengrass Core software
 echo "************ Download the AWS IoT Greengrass Core software... ************"
 curl -s https://d2s8p88vqu9w66.cloudfront.net/releases/greengrass-2.13.0.zip > greengrass-2.13.0.zip
-jarsigner -verify -certs greengrass-2.13.0.zip
 if ! command -v unzip &> /dev/null; then
     echo "unzip is not installed. Installing unzip..."
     apt -y install unzip
 fi
 unzip greengrass-2.13.0.zip -d GreengrassInstaller && rm greengrass-2.13.0.zip
-ggc_version=$(java -jar ./GreengrassInstaller/lib/Greengrass.jar --version | sed 's|AWS Greengrass v||')
-echo "Version of the AWS IoT Greengrass Core software : $ggc_version"
 echo "Done"
 
 # download the AWS IoT fleet provisioning plugin
 echo "************ Download the AWS IoT fleet provisioning plugin... ************"
-curl -s https://d2s8p88vqu9w66.cloudfront.net/releases/aws-greengrass-FleetProvisioningByClaim/fleetprovisioningbyclaim-latest.jar > GreengrassInstaller/aws.greengrass.FleetProvisioningByClaim.jar
+curl -s https://d2s8p88vqu9w66.cloudfront.net/releases/aws-greengrass-FleetProvisioningByClaim/fleetprovisioningbyclaim-1.2.1.jar > GreengrassInstaller/aws.greengrass.FleetProvisioningByClaim.jar
 echo "Done"
 
 # delete self
