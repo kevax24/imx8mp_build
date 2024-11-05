@@ -370,20 +370,53 @@ echo "root:root" | chpasswd
 echo "${HOST_NAME}" | sudo tee /etc/hostname
 echo "127.0.0.1 localhost ${HOST_NAME}" | sudo tee -a /etc/hosts
 
-# check the date
+# download certificates to the device
+echo "************ Download certificates to the device... ************"
+mkdir -p /greengrass/v2
+chmod 755 /greengrass
+echo "mv ./claim.pem.crt /greengrass/v2"
+echo "mv ./claim.private.pem.key /greengrass/v2"
+curl -o /greengrass/v2/AmazonRootCA1.pem https://www.amazontrust.com/repository/AmazonRootCA1.pem
+echo "Done"
+
+# set up the device environment
+echo "************ Set up the device environment... ************"
+apt update
+
 date
 date -s "2024-11-04 00:00:00"
 date
-ntpdate -u pool.ntp.org || echo "NTP sync failed; continuing with manually set date."
 
-# update CA Certificates
 apt install --reinstall ca-certificates
 update-ca-certificates
 
-# install AWS Greengrass
 mount -t proc /proc /proc
 apt -y install default-jdk
 umount /proc
+java -version
+
+useradd --system --create-home ggc_user
+groupadd --system ggc_group
+sed -i 's|root.*|root    ALL=(ALL:ALL) ALL|' "/etc/sudoers"
+echo "Done"
+
+# download the AWS IoT Greengrass Core software
+echo "************ Download the AWS IoT Greengrass Core software... ************"
+curl -s https://d2s8p88vqu9w66.cloudfront.net/releases/greengrass-2.13.0.zip > greengrass-2.13.0.zip
+jarsigner -verify -certs greengrass-2.13.0.zip
+if ! command -v unzip &> /dev/null; then
+    echo "unzip is not installed. Installing unzip..."
+    apt -y install unzip
+fi
+unzip greengrass-2.13.0.zip -d GreengrassInstaller && rm greengrass-2.13.0.zip
+ggc_version=$(java -jar ./GreengrassInstaller/lib/Greengrass.jar --version | sed 's|AWS Greengrass v||')
+echo "Version of the AWS IoT Greengrass Core software : $ggc_version"
+echo "Done"
+
+# download the AWS IoT fleet provisioning plugin
+echo "************ Download the AWS IoT fleet provisioning plugin... ************"
+curl -s https://d2s8p88vqu9w66.cloudfront.net/releases/aws-greengrass-FleetProvisioningByClaim/fleetprovisioningbyclaim-latest.jar > GreengrassInstaller/aws.greengrass.FleetProvisioningByClaim.jar
+echo "Done"
 
 # delete self
 rm -f /stage2.sh
