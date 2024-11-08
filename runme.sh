@@ -27,7 +27,7 @@ GIT_REL[buildroot]=${BUILDROOT_VERSION}
 # - bookworm
 # - bullseye
 : ${DEBIAN_VERSION:=bookworm}
-: ${DEBIAN_ROOTFS_SIZE:=6G}
+: ${DEBIAN_ROOTFS_SIZE:=4G}
 : ${DEBIAN_PACKAGES:="apt-transport-https,busybox,ca-certificates,can-utils,command-not-found,chrony,curl,e2fsprogs,ethtool,fdisk,gpiod,haveged,i2c-tools,ifupdown,iputils-ping,isc-dhcp-client,initramfs-tools,libiio-utils,lm-sensors,locales,nano,net-tools,ntpdate,openssh-server,psmisc,rfkill,sudo,systemd,systemd-sysv,dbus,tio,usbutils,wget,xterm,xz-utils"}
 : ${HOST_NAME:=imx8mp}
 ## Kernel Options:
@@ -54,7 +54,7 @@ GIT_REL[buildroot]=${BUILDROOT_VERSION}
 # - mmc:2:0 (MMC 2 Partition 0) <-- eMMC on HummingBoard Pulse
 # - mmc:2:1 (MMC 2 Partition boot0) <-- eMMC boot0 on HummingBoard Pulse
 # - mmc:2:2 (MMC 2 Partition boot1) <-- eMMC boot1 on HummingBoard Pulse
-: ${UBOOT_ENVIRONMENT:=mmc:1:0} # <-- default microSD on HummingBoard Pulse
+: ${UBOOT_ENVIRONMENT:=mmc:2:0} # <-- default eMMC on HummingBoard Pulse
 
 ROOTDIR=`pwd`
 
@@ -301,6 +301,9 @@ cd $ROOTDIR/build/linux-imx
 make $LINUX_DEFCONFIG
 ./scripts/kconfig/merge_config.sh .config $ROOTDIR/configs/kernel.extra
 # make menuconfig
+for file in $ROOTDIR/build/linux-imx/arch/arm64/boot/dts/freescale/*imx8mp*.dts*; do
+    sed -i '/&usdhc2/,/status/{s/status = "okay"/status = "disabled"/}' "$file"
+done
 make -j$(nproc) Image dtbs
 cp $ROOTDIR/build/linux-imx/arch/arm64/boot/Image ${ROOTDIR}/images/tmp/Image
 cp $ROOTDIR/build/linux-imx/arch/arm64/boot/dts/freescale/*imx8mp*.dtb ${ROOTDIR}/images/tmp/
@@ -372,7 +375,7 @@ echo "127.0.0.1 localhost ${HOST_NAME}" | sudo tee -a /etc/hosts
 
 # update date and ca certificates
 date
-hwclock --hctosys
+date -s "2024-11-08 00:00:00"
 date
 
 apt install --reinstall ca-certificates
@@ -425,6 +428,15 @@ sync
 reboot -f
 EOF
 		chmod +x stage1/stage2.sh
+
+		# prepare provisioning script
+		cat > stage1/provision.sh << EOF
+#!/bin/sh
+
+# print date to test
+date
+EOF
+		chmod +x stage1/provision.sh
 
 		# create empty partition image
 		dd if=/dev/zero of=rootfs.e2.orig bs=1 count=0 seek=${DEBIAN_ROOTFS_SIZE}
