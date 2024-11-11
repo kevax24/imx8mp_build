@@ -358,6 +358,13 @@ do_build_debian() {
 			stage1 \
 			https://deb.debian.org/debian
 
+		# prepare claim certifiacte
+		cp $ROOTDIR/claim.pem.crt stage1/claim.pem.crt
+		cp $ROOTDIR/claim.private.pem.key stage1/claim.private.pem.key
+
+		# prepare provisioning configuration parameters
+		cp $ROOTDIR/config_parameters.txt stage1/config_parameters.txt
+
 		# prepare init-script for second stage inside VM
 		cat > stage1/stage2.sh << EOF
 #!/bin/sh
@@ -385,8 +392,8 @@ update-ca-certificates
 echo "************ Download certificates to the device... ************"
 mkdir -p /greengrass/v2
 chmod 755 /greengrass
-echo "mv ./claim.pem.crt /greengrass/v2"
-echo "mv ./claim.private.pem.key /greengrass/v2"
+mv ./claim.pem.crt /greengrass/v2
+mv ./claim.private.pem.key /greengrass/v2
 curl -o /greengrass/v2/AmazonRootCA1.pem https://www.amazontrust.com/repository/AmazonRootCA1.pem
 echo "Done"
 
@@ -433,10 +440,72 @@ EOF
 		cat > stage1/provision.sh << EOF
 #!/bin/sh
 
-# print date to test
-date
+# giving the device time to boot (second)
+sleep 30
+
+# get MAC address of eth0
+MAC_ADDRESS=$(cat /sys/class/net/end0/address | tr -d ':')
+
+n=1
+while IFS= read -r "var$n"; do
+  n=$((n + 1))
+done < ./config_parameters.txt
+
+REGION=$var1
+iot_data_endpoint=$var2
+iot_credentials_endpoint=$var3
+TES_ROLE_ALIAS_NAME=$var4
+FLEET_TEMPLATE_NAME=$var5
+
+# install the AWS IoT Greengrass Core software and provision device on AWS
+echo "************ Install the AWS IoT Greengrass Core software and provision device on AWS... ************"
+# Edit configuration file
+sed -i 's|awsRegion: ""|awsRegion: "'$REGION'"|' "config.yaml"
+sed -i 's|iotDataEndpoint: ""|iotDataEndpoint: "'$iot_data_endpoint'"|' "config.yaml"
+sed -i 's|iotCredentialEndpoint: ""|iotCredentialEndpoint: "'$iot_credentials_endpoint'"|' "config.yaml"
+sed -i 's|iotRoleAlias: ""|iotRoleAlias: "'$TES_ROLE_ALIAS_NAME'"|' "config.yaml"
+sed -i 's|provisioningTemplate: ""|provisioningTemplate: "'$FLEET_TEMPLATE_NAME'"|' "config.yaml"
+sed -i 's|SerialNumber: ""|SerialNumber: "'$MAC_ADDRESS'"|' "config.yaml"
+sudo mv ./config.yaml ./GreengrassInstaller/
+
+sudo -E java -Droot="/greengrass/v2" -Dlog.store=FILE \
+  -jar ./GreengrassInstaller/lib/Greengrass.jar \
+  --trusted-plugin ./GreengrassInstaller/aws.greengrass.FleetProvisioningByClaim.jar \
+  --init-config ./GreengrassInstaller/config.yaml \
+  --component-default-user ggc_user:ggc_group \
+  --setup-system-service true
+echo "Done"
+
+# delete all unused files after provisioning
+# Delete all provisioning files
+sleep 60
+rm ./config_parameters.txt
+rm /greengrass/v2/claim.private.pem.key
+rm /greengrass/v2/claim.pem.crt
+rm -rf ./GreengrassInstaller
 EOF
 		chmod +x stage1/provision.sh
+
+		# prepare Greengrass config
+		cat > stage1/config.yaml << EOF
+---
+services:
+  aws.greengrass.Nucleus:
+    version: "2.13.0"
+  aws.greengrass.FleetProvisioningByClaim:
+    configuration:
+      rootPath: "/greengrass/v2"
+      awsRegion: ""
+      iotDataEndpoint: ""
+      iotCredentialEndpoint: ""
+      iotRoleAlias: ""
+      provisioningTemplate: ""
+      claimCertificatePath: "/greengrass/v2/claim.pem.crt"
+      claimCertificatePrivateKeyPath: "/greengrass/v2/claim.private.pem.key"
+      rootCaPath: "/greengrass/v2/AmazonRootCA1.pem"
+      templateParameters:
+        SerialNumber: ""
+EOF
 
 		# create empty partition image
 		dd if=/dev/zero of=rootfs.e2.orig bs=1 count=0 seek=${DEBIAN_ROOTFS_SIZE}
