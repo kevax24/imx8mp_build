@@ -465,7 +465,7 @@ sed -i 's|iotDataEndpoint: ""|iotDataEndpoint: "'$iot_data_endpoint'"|' "config.
 sed -i 's|iotCredentialEndpoint: ""|iotCredentialEndpoint: "'$iot_credentials_endpoint'"|' "config.yaml"
 sed -i 's|iotRoleAlias: ""|iotRoleAlias: "'$TES_ROLE_ALIAS_NAME'"|' "config.yaml"
 sed -i 's|provisioningTemplate: ""|provisioningTemplate: "'$FLEET_TEMPLATE_NAME'"|' "config.yaml"
-sed -i 's|SerialNumber: ""|SerialNumber: "'$MAC_ADDRESS'"|' "config.yaml"
+sed -i 's|ThingName: ""|ThingName: "'$MAC_ADDRESS'"|' "config.yaml"
 sudo mv ./config.yaml ./GreengrassInstaller/
 
 sudo -E java -Droot="/greengrass/v2" -Dlog.store=FILE \
@@ -478,11 +478,11 @@ echo "Done"
 
 # delete all unused files after provisioning
 # Delete all provisioning files
-sleep 60
-rm ./config_parameters.txt
-rm /greengrass/v2/claim.private.pem.key
-rm /greengrass/v2/claim.pem.crt
-rm -rf ./GreengrassInstaller
+# sleep 60
+# rm ./config_parameters.txt
+# rm /greengrass/v2/claim.private.pem.key
+# rm /greengrass/v2/claim.pem.crt
+# rm -rf ./GreengrassInstaller
 EOF
 		chmod +x stage1/provision.sh
 
@@ -504,7 +504,7 @@ services:
       claimCertificatePrivateKeyPath: "/greengrass/v2/claim.private.pem.key"
       rootCaPath: "/greengrass/v2/AmazonRootCA1.pem"
       templateParameters:
-        SerialNumber: ""
+        ThingName: ""
 EOF
 
 		# create empty partition image
