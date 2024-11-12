@@ -362,9 +362,6 @@ do_build_debian() {
 		cp $ROOTDIR/claim.pem.crt stage1/claim.pem.crt
 		cp $ROOTDIR/claim.private.pem.key stage1/claim.private.pem.key
 
-		# prepare provisioning configuration parameters
-		cp $ROOTDIR/config_parameters.txt stage1/config_parameters.txt
-
 		# prepare init-script for second stage inside VM
 		cat > stage1/stage2.sh << EOF
 #!/bin/sh
@@ -437,7 +434,7 @@ EOF
 		chmod +x stage1/stage2.sh
 
 		# prepare provisioning script
-		cat > stage1/provision.sh << EOF
+		cat > stage1/provision.sh << 'EOF'
 #!/bin/sh
 
 # giving the device time to boot (second)
@@ -446,25 +443,9 @@ sleep 30
 # get MAC address of eth0
 MAC_ADDRESS=$(cat /sys/class/net/end0/address | tr -d ':')
 
-n=1
-while IFS= read -r "var$n"; do
-  n=$((n + 1))
-done < ./config_parameters.txt
-
-REGION=$var1
-iot_data_endpoint=$var2
-iot_credentials_endpoint=$var3
-TES_ROLE_ALIAS_NAME=$var4
-FLEET_TEMPLATE_NAME=$var5
-
 # install the AWS IoT Greengrass Core software and provision device on AWS
 echo "************ Install the AWS IoT Greengrass Core software and provision device on AWS... ************"
 # Edit configuration file
-sed -i 's|awsRegion: ""|awsRegion: "'$REGION'"|' "config.yaml"
-sed -i 's|iotDataEndpoint: ""|iotDataEndpoint: "'$iot_data_endpoint'"|' "config.yaml"
-sed -i 's|iotCredentialEndpoint: ""|iotCredentialEndpoint: "'$iot_credentials_endpoint'"|' "config.yaml"
-sed -i 's|iotRoleAlias: ""|iotRoleAlias: "'$TES_ROLE_ALIAS_NAME'"|' "config.yaml"
-sed -i 's|provisioningTemplate: ""|provisioningTemplate: "'$FLEET_TEMPLATE_NAME'"|' "config.yaml"
 sed -i 's|ThingName: ""|ThingName: "'$MAC_ADDRESS'"|' "config.yaml"
 sudo mv ./config.yaml ./GreengrassInstaller/
 
@@ -479,14 +460,18 @@ echo "Done"
 # delete all unused files after provisioning
 # Delete all provisioning files
 # sleep 60
-# rm ./config_parameters.txt
 # rm /greengrass/v2/claim.private.pem.key
 # rm /greengrass/v2/claim.pem.crt
 # rm -rf ./GreengrassInstaller
 EOF
 		chmod +x stage1/provision.sh
 
-		# prepare Greengrass config
+		# prepare provisioning config
+		n=1
+		while IFS= read -r "var$n"; do
+		n=$((n + 1))
+		done < $ROOTDIR/config_parameters.txt
+
 		cat > stage1/config.yaml << EOF
 ---
 services:
@@ -495,11 +480,11 @@ services:
   aws.greengrass.FleetProvisioningByClaim:
     configuration:
       rootPath: "/greengrass/v2"
-      awsRegion: ""
-      iotDataEndpoint: ""
-      iotCredentialEndpoint: ""
-      iotRoleAlias: ""
-      provisioningTemplate: ""
+      awsRegion: "$var1"
+      iotDataEndpoint: "$var2"
+      iotCredentialEndpoint: "$var3"
+      iotRoleAlias: "$var4"
+      provisioningTemplate: "$var5"
       claimCertificatePath: "/greengrass/v2/claim.pem.crt"
       claimCertificatePrivateKeyPath: "/greengrass/v2/claim.private.pem.key"
       rootCaPath: "/greengrass/v2/AmazonRootCA1.pem"
