@@ -358,9 +358,12 @@ do_build_debian() {
 			stage1 \
 			https://deb.debian.org/debian
 
-		# prepare claim certifiacte
-		cp $ROOTDIR/claim.pem.crt stage1/claim.pem.crt
-		cp $ROOTDIR/claim.private.pem.key stage1/claim.private.pem.key
+		# add claim certificate
+		cp $ROOTDIR/greengrass/claim.pem.crt stage1/claim.pem.crt
+		cp $ROOTDIR/greengrass/claim.private.pem.key stage1/claim.private.pem.key
+
+		# get current date
+		current_date=$(date +"%Y-%m-%d %H:%M:%S")
 
 		# prepare init-script for second stage inside VM
 		cat > stage1/stage2.sh << EOF
@@ -377,52 +380,26 @@ echo "root:root" | chpasswd
 echo "${HOST_NAME}" | sudo tee /etc/hostname
 echo "127.0.0.1 localhost ${HOST_NAME}" | sudo tee -a /etc/hosts
 
-# update date and ca certificates
+# update date and ca certificates for qemu
 date
-date -s "2024-11-08 00:00:00"
-date
+date -s "${current_date}"
 
 apt install --reinstall ca-certificates
 update-ca-certificates
 
-# download certificates to the device
-echo "************ Download certificates to the device... ************"
-mkdir -p /greengrass/v2
-chmod 755 /greengrass
-mv ./claim.pem.crt /greengrass/v2
-mv ./claim.private.pem.key /greengrass/v2
-curl -o /greengrass/v2/AmazonRootCA1.pem https://www.amazontrust.com/repository/AmazonRootCA1.pem
-echo "Done"
+# install AWS Greengass software and dependencies
+sh ./install_greengrass.sh
 
-# set up the device environment
-echo "************ Set up the device environment... ************"
-apt update
+# create the symlink to enable the memory space service
+# ln -s /etc/systemd/system/resize_emmc.service /etc/systemd/system/multi-user.target.wants/resize_emmc.service
 
-mount -t proc /proc /proc
-apt -y install default-jdk
-umount /proc
+# create the symlink to enable the provisioning service
+# ln -s /etc/systemd/system/provision.service /etc/systemd/system/multi-user.target.wants/provision.service
 
-useradd --system --create-home ggc_user
-groupadd --system ggc_group
-sed -i 's|root.*|root    ALL=(ALL:ALL) ALL|' "/etc/sudoers"
-echo "Done"
+ls -la etc/systemd/system/multi-user.target.wants/
 
-# download the AWS IoT Greengrass Core software
-echo "************ Download the AWS IoT Greengrass Core software... ************"
-curl -s https://d2s8p88vqu9w66.cloudfront.net/releases/greengrass-2.13.0.zip > greengrass-2.13.0.zip
-if ! command -v unzip &> /dev/null; then
-    echo "unzip is not installed. Installing unzip..."
-    apt -y install unzip
-fi
-unzip greengrass-2.13.0.zip -d GreengrassInstaller && rm greengrass-2.13.0.zip
-echo "Done"
-
-# download the AWS IoT fleet provisioning plugin
-echo "************ Download the AWS IoT fleet provisioning plugin... ************"
-curl -s https://d2s8p88vqu9w66.cloudfront.net/releases/aws-greengrass-FleetProvisioningByClaim/fleetprovisioningbyclaim-1.2.1.jar > GreengrassInstaller/aws.greengrass.FleetProvisioningByClaim.jar
-echo "Done"
-
-# delete self
+# delete self and Greengrass installation script
+rm -f /install_greengrass.sh
 rm -f /stage2.sh
 
 # flush disk
@@ -433,110 +410,34 @@ reboot -f
 EOF
 		chmod +x stage1/stage2.sh
 
-		# prepare provisioning script
-		cat > stage1/provision.sh << 'EOF'
-#!/bin/sh
+		# add Greengrass installation script
+		cp $ROOTDIR/greengrass/install_greengrass.sh stage1/install_greengrass.sh
+		chmod +x stage1/install_greengrass.sh
+		
+		# add memory resizing script
+		cp $ROOTDIR/greengrass/resize_emmc.sh stage1/resize_emmc.sh
+		chmod +x stage1/resize_emmc.sh
 
-# giving the device time to boot (second)
-sleep 30
+		# cp $ROOTDIR/greengrass/resize_emmc.service stage1/etc/systemd/system/resize_emmc.service
 
-# get MAC address of eth0
-MAC_ADDRESS=$(cat /sys/class/net/end0/address | tr -d ':')
-
-# install the AWS IoT Greengrass Core software and provision device on AWS
-echo "************ Install the AWS IoT Greengrass Core software and provision device on AWS... ************"
-# Edit configuration file
-sed -i 's|ThingName: ""|ThingName: "'$MAC_ADDRESS'"|' "config.yaml"
-sudo mv ./config.yaml ./GreengrassInstaller/
-
-sudo -E java -Droot="/greengrass/v2" -Dlog.store=FILE \
-  -jar ./GreengrassInstaller/lib/Greengrass.jar \
-  --trusted-plugin ./GreengrassInstaller/aws.greengrass.FleetProvisioningByClaim.jar \
-  --init-config ./GreengrassInstaller/config.yaml \
-  --component-default-user ggc_user:ggc_group \
-  --setup-system-service true
-echo "Done"
-
-# delete all unused files after provisioning
-# Delete all provisioning files
-# sleep 60
-# rm /greengrass/v2/claim.private.pem.key
-# rm /greengrass/v2/claim.pem.crt
-# rm -rf ./GreengrassInstaller
-EOF
+		# add provisioning script
+		cp $ROOTDIR/greengrass/provision.sh stage1/provision.sh
 		chmod +x stage1/provision.sh
 
-		# prepare provisioning config
+		# cp $ROOTDIR/greengrass/provision.service stage1/etc/systemd/system/provision.service
+
+		# add provisioning config
 		n=1
 		while IFS= read -r "var$n"; do
 		n=$((n + 1))
-		done < $ROOTDIR/config_parameters.txt
+		done < $ROOTDIR/greengrass/config_parameters.txt
 
-		cat > stage1/config.yaml << EOF
----
-services:
-  aws.greengrass.Nucleus:
-    version: "2.13.0"
-  aws.greengrass.FleetProvisioningByClaim:
-    configuration:
-      rootPath: "/greengrass/v2"
-      awsRegion: "$var1"
-      iotDataEndpoint: "$var2"
-      iotCredentialEndpoint: "$var3"
-      iotRoleAlias: "$var4"
-      provisioningTemplate: "$var5"
-      claimCertificatePath: "/greengrass/v2/claim.pem.crt"
-      claimCertificatePrivateKeyPath: "/greengrass/v2/claim.private.pem.key"
-      rootCaPath: "/greengrass/v2/AmazonRootCA1.pem"
-      templateParameters:
-        ThingName: ""
-EOF
-
-		# prepare memory resizing script
-		cat > stage1/resize_emmc.sh << 'EOF'
-#!/bin/bash
-
-# Define the device (eMMC)
-DEVICE="/dev/mmcblk2"
-PARTITION="${DEVICE}p2"  # Adjust this to the specific partition number, e.g., mmcblk2p2
-
-# Check if the device exists
-if [ ! -b "$DEVICE" ]; then
-    echo "Device $DEVICE not found."
-    exit 1
-fi
-
-# Check if the partition exists
-if [ ! -b "$PARTITION" ]; then
-    echo "Partition $PARTITION not found."
-    exit 1
-fi
-
-# Install parted if not already installed
-if ! command -v parted &> /dev/null; then
-    echo "Installing parted..."
-    apt update && apt -y install parted
-fi
-
-echo "Starting resize process on $PARTITION..."
-
-# Step 1: Resize the partition
-# Set the partition to use all remaining space (using `parted`)
-parted "$DEVICE" resizepart 2 100% || {
-    echo "Failed to resize partition."
-    exit 1
-}
-
-# Step 2: Resize the filesystem
-# Run resize2fs on the partition to fill the resized space
-resize2fs "$PARTITION" || {
-    echo "Failed to resize filesystem."
-    exit 1
-}
-
-echo "Resize completed successfully on $PARTITION."
-EOF
-		chmod +x stage1/resize_emmc.sh
+		cp $ROOTDIR/greengrass/config.yaml stage1/config.yaml
+		sed -i 's|awsRegion: ""|awsRegion: "'$var1'"|' "stage1/config.yaml"
+		sed -i 's|iotDataEndpoint: ""|iotDataEndpoint: "'$var2'"|' "stage1/config.yaml"
+		sed -i 's|iotCredentialEndpoint: ""|iotCredentialEndpoint: "'$var3'"|' "stage1/config.yaml"
+		sed -i 's|iotRoleAlias: ""|iotRoleAlias: "'$var4'"|' "stage1/config.yaml"
+		sed -i 's|provisioningTemplate: ""|provisioningTemplate: "'$var5'"|' "stage1/config.yaml"
 
 		# create empty partition image
 		dd if=/dev/zero of=rootfs.e2.orig bs=1 count=0 seek=${DEBIAN_ROOTFS_SIZE}

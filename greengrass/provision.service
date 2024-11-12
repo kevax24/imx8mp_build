@@ -1,0 +1,12 @@
+[Unit]
+Description=Run provision script on first boot only
+Requires=network.target
+After=resize_emmc.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /provision.sh > /root/provision.log 2>&1
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target

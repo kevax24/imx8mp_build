@@ -1,0 +1,10 @@
+[Unit]
+Description=Run memory resizing script on first boot only
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /resize_emmc.sh > /root/resize_emmc.log 2>&1
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
