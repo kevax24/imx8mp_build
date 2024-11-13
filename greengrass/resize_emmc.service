@@ -1,5 +1,7 @@
 [Unit]
 Description=Run memory resizing script on first boot only
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot

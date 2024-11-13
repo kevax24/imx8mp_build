@@ -1,7 +1,7 @@
 [Unit]
 Description=Run provision script on first boot only
-Requires=network.target
-After=resize_emmc.service
+After=network-online.target resize_emmc.service
+Wants=network-online.target
 
 [Service]
 Type=oneshot

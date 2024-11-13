@@ -27,7 +27,7 @@ GIT_REL[buildroot]=${BUILDROOT_VERSION}
 # - bookworm
 # - bullseye
 : ${DEBIAN_VERSION:=bookworm}
-: ${DEBIAN_ROOTFS_SIZE:=4G}
+: ${DEBIAN_ROOTFS_SIZE:=936M}
 : ${DEBIAN_PACKAGES:="apt-transport-https,busybox,ca-certificates,can-utils,command-not-found,chrony,curl,e2fsprogs,ethtool,fdisk,gpiod,haveged,i2c-tools,ifupdown,iputils-ping,isc-dhcp-client,initramfs-tools,libiio-utils,lm-sensors,locales,nano,net-tools,ntpdate,openssh-server,psmisc,rfkill,sudo,systemd,systemd-sysv,dbus,tio,usbutils,wget,xterm,xz-utils"}
 : ${HOST_NAME:=imx8mp}
 ## Kernel Options:
@@ -301,9 +301,11 @@ cd $ROOTDIR/build/linux-imx
 make $LINUX_DEFCONFIG
 ./scripts/kconfig/merge_config.sh .config $ROOTDIR/configs/kernel.extra
 # make menuconfig
-for file in $ROOTDIR/build/linux-imx/arch/arm64/boot/dts/freescale/*imx8mp*.dts*; do
-    sed -i '/&usdhc2/,/status/{s/status = "okay"/status = "disabled"/}' "$file"
-done
+if [ "x${UBOOT_ENVIRONMENT}" = "xmmc:2:0" ]; then
+	for file in $ROOTDIR/build/linux-imx/arch/arm64/boot/dts/freescale/*imx8mp*.dts*; do
+		sed -i '/&usdhc2/,/status/{s/status = "okay"/status = "disabled"/}' "$file"
+	done
+fi
 make -j$(nproc) Image dtbs
 cp $ROOTDIR/build/linux-imx/arch/arm64/boot/Image ${ROOTDIR}/images/tmp/Image
 cp $ROOTDIR/build/linux-imx/arch/arm64/boot/dts/freescale/*imx8mp*.dtb ${ROOTDIR}/images/tmp/
@@ -438,6 +440,7 @@ EOF
 		sed -i 's|iotCredentialEndpoint: ""|iotCredentialEndpoint: "'$var3'"|' "stage1/config.yaml"
 		sed -i 's|iotRoleAlias: ""|iotRoleAlias: "'$var4'"|' "stage1/config.yaml"
 		sed -i 's|provisioningTemplate: ""|provisioningTemplate: "'$var5'"|' "stage1/config.yaml"
+		sed -i 's|ThingGroupName: ""|ThingGroupName: "'$var6'"|' "stage1/config.yaml"
 
 		# create empty partition image
 		dd if=/dev/zero of=rootfs.e2.orig bs=1 count=0 seek=${DEBIAN_ROOTFS_SIZE}
@@ -447,7 +450,7 @@ EOF
 
 		# bootstrap second stage within qemu
 		qemu-system-aarch64 \
-			-m 4G \
+			-m 3G \
 			-M virt \
 			-cpu cortex-a57 \
 			-smp 4 \
