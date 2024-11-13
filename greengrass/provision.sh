@@ -23,10 +23,11 @@ echo "Done"
 sleep 60
 
 # disable provisioning service so it does not run on next boot
-# systemctl disable provision.service
+systemctl disable provision.service
+rm /etc/systemd/system/provision.service
 
-# delete all unused files after provisioning
-# Delete all provisioning files
-# rm /greengrass/v2/claim.private.pem.key
-# rm /greengrass/v2/claim.pem.crt
-# rm -rf ./GreengrassInstaller
+# delete self and all unused files after provisioning
+rm /greengrass/v2/claim.private.pem.key
+rm /greengrass/v2/claim.pem.crt
+rm -rf ./GreengrassInstaller
+rm -f /provision.sh

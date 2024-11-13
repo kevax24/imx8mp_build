@@ -54,7 +54,7 @@ GIT_REL[buildroot]=${BUILDROOT_VERSION}
 # - mmc:2:0 (MMC 2 Partition 0) <-- eMMC on HummingBoard Pulse
 # - mmc:2:1 (MMC 2 Partition boot0) <-- eMMC boot0 on HummingBoard Pulse
 # - mmc:2:2 (MMC 2 Partition boot1) <-- eMMC boot1 on HummingBoard Pulse
-: ${UBOOT_ENVIRONMENT:=mmc:2:0} # <-- default eMMC on HummingBoard Pulse
+: ${UBOOT_ENVIRONMENT:=mmc:1:0} # <-- default microSD on HummingBoard Pulse
 
 ROOTDIR=`pwd`
 
@@ -396,7 +396,7 @@ sh ./install_greengrass.sh
 ln -s /etc/systemd/system/resize_emmc.service /etc/systemd/system/multi-user.target.wants/resize_emmc.service
 
 # create the symlink to enable the provisioning service on boot
-# ln -s /etc/systemd/system/provision.service /etc/systemd/system/multi-user.target.wants/provision.service
+ln -s /etc/systemd/system/provision.service /etc/systemd/system/multi-user.target.wants/provision.service
 
 ls -la etc/systemd/system/multi-user.target.wants/
 
@@ -426,7 +426,7 @@ EOF
 		cp $ROOTDIR/greengrass/provision.sh stage1/provision.sh
 		chmod +x stage1/provision.sh
 
-		# cp $ROOTDIR/greengrass/provision.service stage1/etc/systemd/system/provision.service
+		cp $ROOTDIR/greengrass/provision.service stage1/etc/systemd/system/provision.service
 
 		# add provisioning config
 		n=1
