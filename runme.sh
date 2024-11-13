@@ -390,10 +390,10 @@ update-ca-certificates
 # install AWS Greengass software and dependencies
 sh ./install_greengrass.sh
 
-# create the symlink to enable the memory space service
-# ln -s /etc/systemd/system/resize_emmc.service /etc/systemd/system/multi-user.target.wants/resize_emmc.service
+# create the symlink to enable the memory space service on boot
+ln -s /etc/systemd/system/resize_emmc.service /etc/systemd/system/multi-user.target.wants/resize_emmc.service
 
-# create the symlink to enable the provisioning service
+# create the symlink to enable the provisioning service on boot
 # ln -s /etc/systemd/system/provision.service /etc/systemd/system/multi-user.target.wants/provision.service
 
 ls -la etc/systemd/system/multi-user.target.wants/
@@ -418,7 +418,7 @@ EOF
 		cp $ROOTDIR/greengrass/resize_emmc.sh stage1/resize_emmc.sh
 		chmod +x stage1/resize_emmc.sh
 
-		# cp $ROOTDIR/greengrass/resize_emmc.service stage1/etc/systemd/system/resize_emmc.service
+		cp $ROOTDIR/greengrass/resize_emmc.service stage1/etc/systemd/system/resize_emmc.service
 
 		# add provisioning script
 		cp $ROOTDIR/greengrass/provision.sh stage1/provision.sh

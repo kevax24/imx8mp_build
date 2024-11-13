@@ -39,6 +39,10 @@ resize2fs "$PARTITION" || {
 }
 
 # disable memory resizing service so it does not run on next boot
-# systemctl disable resize_emmc.service
+systemctl disable resize_emmc.service
+rm /etc/systemd/system/resize_emmc.service
+
+# delete self
+rm -f /resize_emmc.sh
 
 echo "Resize completed successfully on $PARTITION."

@@ -5,7 +5,9 @@ After=resize_emmc.service
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh /provision.sh > /root/provision.log 2>&1
+ExecStart=/bin/sh /provision.sh
+StandardOutput=append:/root/provision.log
+StandardError=append:/root/provision.log
 RemainAfterExit=true
 
 [Install]
