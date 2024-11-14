@@ -398,9 +398,6 @@ ln -s /etc/systemd/system/resize_emmc.service /etc/systemd/system/multi-user.tar
 # create the symlink to enable the provisioning service on boot
 ln -s /etc/systemd/system/provision.service /etc/systemd/system/multi-user.target.wants/provision.service
 
-# listen the ssh connections only on the loopback interface
-echo "ListenAddress 127.0.0.1" >> /etc/ssh/sshd_config
-
 # delete self and Greengrass installation script
 rm -f /install_greengrass.sh
 rm -f /stage2.sh
