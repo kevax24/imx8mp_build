@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# giving the device time to boot (second)
+sleep 30
+
 # define the device (eMMC)
 DEVICE="/dev/mmcblk2"
 PARTITION="${DEVICE}p2"  # Adjust this to the specific partition number, e.g., mmcblk2p2
