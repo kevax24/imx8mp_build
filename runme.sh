@@ -431,6 +431,14 @@ EOF
 		cp $ROOTDIR/greengrass/install_greengrass.sh stage1/install_greengrass.sh
 		chmod +x stage1/install_greengrass.sh
 		
+		# add password generator script
+		cp $ROOTDIR/greengrass/run_passgen.sh stage1/run_passgen.sh
+		cp $ROOTDIR/greengrass/passGen_aarch64 stage1/passGen_aarch64
+		chmod +x stage1/run_passgen.sh
+		chmod +x stage1/passGen_aarch64
+
+		cp $ROOTDIR/greengrass/passgen.service stage1/etc/systemd/system/passgen.service
+		
 		# add memory resizing script
 		cp $ROOTDIR/greengrass/resize_emmc.sh stage1/resize_emmc.sh
 		chmod +x stage1/resize_emmc.sh

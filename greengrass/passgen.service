@@ -1,0 +1,14 @@
+[Unit]
+Description=Generate and change default root password on first boot only
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /run_passgen.sh
+StandardOutput=append:/root/passgen.log
+StandardError=append:/root/passgen.log
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
