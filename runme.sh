@@ -450,6 +450,7 @@ EOF
 
 		# add provisioning script
 		cp $ROOTDIR/greengrass/provision.sh stage1/provision.sh
+		cp $ROOTDIR/greengrass/config.yaml stage1/config.yaml
 		chmod +x stage1/provision.sh
 
 		cp $ROOTDIR/greengrass/provision.service stage1/etc/systemd/system/provision.service
