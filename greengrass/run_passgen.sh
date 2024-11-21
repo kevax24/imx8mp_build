@@ -1,12 +1,18 @@
 #!/bin/bash
 
+# giving the device time to boot (second)
+sleep 30
+
 # generate and change the default root password
 if ip link show | grep -q "end0"; then
     echo "Interface end0 detected"
     ./passGen_aarch64 end0
-else
+elif ip link show | grep -q "eth0"; then
     echo "Interface eth0 detected"
     ./passGen_aarch64
+else
+    echo "No interface detected"
+    exit 1
 fi
 
 if [ $? -eq 0 ]; then
