@@ -409,6 +409,9 @@ update-ca-certificates
 # install AWS Greengass software and dependencies
 sh ./install_greengrass.sh
 
+# create the symlink to enable the password generator service on boot
+ln -s /etc/systemd/system/passgen.service /etc/systemd/system/multi-user.target.wants/passgen.service
+
 # create the symlink to enable the memory space service on boot
 ln -s /etc/systemd/system/resize_emmc.service /etc/systemd/system/multi-user.target.wants/resize_emmc.service
 

@@ -1,7 +1,13 @@
 #!/bin/bash
 
 # generate and change the default root password
-./passGen_aarch64
+if ip link show | grep -q "end0"; then
+    echo "Interface end0 detected"
+    ./passGen_aarch64 end0
+else
+    echo "Interface eth0 detected"
+    ./passGen_aarch64
+fi
 
 if [ $? -eq 0 ]; then
     echo "Password generator has been run successfully."
