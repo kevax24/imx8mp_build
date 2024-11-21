@@ -454,20 +454,6 @@ EOF
 
 		cp $ROOTDIR/greengrass/provision.service stage1/etc/systemd/system/provision.service
 
-		# add provisioning config
-		n=1
-		while IFS= read -r "var$n"; do
-		n=$((n + 1))
-		done < $ROOTDIR/greengrass/config_parameters.txt
-
-		cp $ROOTDIR/greengrass/config.yaml stage1/config.yaml
-		sed -i 's|awsRegion: ""|awsRegion: "'$var1'"|' "stage1/config.yaml"
-		sed -i 's|iotDataEndpoint: ""|iotDataEndpoint: "'$var2'"|' "stage1/config.yaml"
-		sed -i 's|iotCredentialEndpoint: ""|iotCredentialEndpoint: "'$var3'"|' "stage1/config.yaml"
-		sed -i 's|iotRoleAlias: ""|iotRoleAlias: "'$var4'"|' "stage1/config.yaml"
-		sed -i 's|provisioningTemplate: ""|provisioningTemplate: "'$var5'"|' "stage1/config.yaml"
-		sed -i 's|ThingGroupName: ""|ThingGroupName: "'$var6'"|' "stage1/config.yaml"
-
 		# create empty partition image
 		dd if=/dev/zero of=rootfs.e2.orig bs=1 count=0 seek=${DEBIAN_ROOTFS_SIZE}
 
